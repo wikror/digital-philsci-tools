@@ -111,13 +111,23 @@ def main(datasets: list=DATASETS, latest: bool=True, release_id: str=None):
             while remaining_urls:
                 remaining_files = download_parallel(remaining_urls, cpus=5)
                 
+                if not remaining_files:
+                    break  # No more failed files to retry
+                
                 response = SESSION.get("https://api.semanticscholar.org/datasets/v1/release/" + release_id + "/dataset/" + dataset)
                 urls = response.json()["files"]
 
-                remaining_urls = [u for u in urls if any(f == OUTPUT_PATH + release_id + "/" + dataset + "/" + os.path.basename(urlparse(u).path) for f in remaining_files)]
+                # Create (url, filename) tuples for failed files only
+                remaining_urls = [(u, OUTPUT_PATH + release_id + "/" + dataset + "/" + os.path.basename(urlparse(u).path)) 
+                                for u in urls 
+                                if OUTPUT_PATH + release_id + "/" + dataset + "/" + os.path.basename(urlparse(u).path) in remaining_files]
             
 
         
 if __name__ == '__main__':
+    from datetime import datetime
     # cProfile.run('main()')
     main(latest=False, release_id="2024-08-06")
+    print(f"\n{'='*60}")
+    print(f"Script finished at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"{'='*60}")
